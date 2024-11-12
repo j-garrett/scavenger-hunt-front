@@ -1,8 +1,8 @@
-import React, { useState, useCallback } from 'react'
-import { GoogleMap, LoadScript, Marker } from '@react-google-maps/api'
+import { useState, useCallback } from 'react'
+import { GoogleMap, useJsApiLoader, Marker } from '@react-google-maps/api'
 
 const containerStyle = {
-    width: '100%',
+    width: '400px',
     height: '400px',
 }
 
@@ -13,6 +13,10 @@ const center = {
 
 const Home = () => {
     const [selectedPosition, setSelectedPosition] = useState(center)
+    const { isLoaded, loadError } = useJsApiLoader({
+        id: 'google-map-script',
+        googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY!,
+    })
 
     const onMapClick = useCallback((event: google.maps.MapMouseEvent) => {
         if (event.latLng) {
@@ -23,10 +27,14 @@ const Home = () => {
         }
     }, [])
 
+    if (loadError) {
+        return <div>Error loading Google Maps</div>
+    }
+
     return (
         <div>
             <h1>Home Page</h1>
-            <LoadScript googleMapsApiKey="YOUR_GOOGLE_MAPS_API_KEY">
+            {isLoaded ? (
                 <GoogleMap
                     mapContainerStyle={containerStyle}
                     center={selectedPosition}
@@ -35,7 +43,9 @@ const Home = () => {
                 >
                     <Marker position={selectedPosition} />
                 </GoogleMap>
-            </LoadScript>
+            ) : (
+                <div>Loading...</div>
+            )}
             <div>
                 <p>Selected Coordinates:</p>
                 <p>Latitude: {selectedPosition.lat}</p>

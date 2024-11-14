@@ -1,5 +1,5 @@
-import { useState, useCallback, useRef } from 'react'
-import { GoogleMap, useJsApiLoader, Marker } from '@react-google-maps/api'
+import { useState, useCallback, useRef, useEffect } from 'react'
+import { GoogleMap, useJsApiLoader } from '@react-google-maps/api'
 import LocationForm from './LocationForm'
 import SearchResults from './SearchResults'
 
@@ -8,20 +8,23 @@ const containerStyle = {
   height: '400px',
 }
 
-const center = {
-  lat: -3.745,
-  lng: -38.523,
-}
+const libraries: Parameters<typeof useJsApiLoader>[0]['libraries'] = [
+  'marker',
+  'places',
+]
 
-const libraries: Parameters<typeof useJsApiLoader>[0]['libraries'] = ['places']
+const denverCoords = { lat: 39.742043, lng: -104.991531 }
 
 const Home = () => {
-  const [selectedPosition, setSelectedPosition] = useState(center)
+  const [selectedPosition, setSelectedPosition] = useState(denverCoords)
   const [searchQuery, setSearchQuery] = useState('')
   const [searchResults, setSearchResults] = useState<
     google.maps.places.PlaceResult[]
   >([])
   const mapRef = useRef<google.maps.Map | null>(null)
+  const markerRef = useRef<google.maps.marker.AdvancedMarkerElement | null>(
+    null,
+  )
 
   const { isLoaded, loadError } = useJsApiLoader({
     id: 'google-map-script',
@@ -38,9 +41,29 @@ const Home = () => {
     }
   }, [])
 
-  const onLoad = useCallback((map: google.maps.Map) => {
-    mapRef.current = map
-  }, [])
+  const onLoad = useCallback(
+    (map: google.maps.Map) => {
+      navigator.geolocation.getCurrentPosition(position => {
+        const userCoords = {
+          lat: position.coords.latitude,
+          lng: position.coords.longitude,
+        }
+        setSelectedPosition(userCoords)
+      })
+      markerRef.current = new google.maps.marker.AdvancedMarkerElement({
+        map,
+        position: selectedPosition,
+      })
+      mapRef.current = map
+    },
+    [selectedPosition, setSelectedPosition],
+  )
+
+  useEffect(() => {
+    if (markerRef.current) {
+      markerRef.current.position = selectedPosition
+    }
+  }, [selectedPosition])
 
   const handleSearch = (event: React.FormEvent) => {
     event.preventDefault()
@@ -92,14 +115,14 @@ const Home = () => {
       </form>
       {isLoaded ? (
         <GoogleMap
-          mapContainerStyle={containerStyle}
+          id="google-map-scavenger-hunt"
           center={selectedPosition}
-          zoom={10}
+          mapContainerStyle={containerStyle}
+          options={{ mapId: import.meta.env.VITE_GOOGLE_MAPS_MAP_ID! }}
+          zoom={13}
           onClick={onMapClick}
           onLoad={onLoad}
-        >
-          <Marker position={selectedPosition} />
-        </GoogleMap>
+        />
       ) : (
         <div>Loading...</div>
       )}

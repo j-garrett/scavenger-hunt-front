@@ -18,7 +18,9 @@ const libraries: Parameters<typeof useJsApiLoader>[0]['libraries'] = ['places']
 const Home = () => {
   const [selectedPosition, setSelectedPosition] = useState(center)
   const [searchQuery, setSearchQuery] = useState('')
-  const [searchResults, setSearchResults] = useState([])
+  const [searchResults, setSearchResults] = useState<
+    google.maps.places.PlaceResult[]
+  >([])
   const mapRef = useRef<google.maps.Map | null>(null)
 
   const { isLoaded, loadError } = useJsApiLoader({

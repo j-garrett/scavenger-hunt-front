@@ -25,6 +25,8 @@ const Home = () => {
   const markerRef = useRef<google.maps.marker.AdvancedMarkerElement | null>(
     null,
   )
+  const circleRef = useRef<google.maps.Circle | null>(null)
+  const [radius, setRadius] = useState(100) // Default radius in meters
 
   const { isLoaded, loadError } = useJsApiLoader({
     id: 'google-map-script',
@@ -63,7 +65,22 @@ const Home = () => {
     if (markerRef.current) {
       markerRef.current.position = selectedPosition
     }
-  }, [selectedPosition])
+    if (mapRef.current && !circleRef.current) {
+      circleRef.current = new google.maps.Circle({
+        map: mapRef.current,
+        center: selectedPosition,
+        radius,
+        fillColor: '#FF0000',
+        fillOpacity: 0.35,
+        strokeColor: '#FF0000',
+        strokeOpacity: 0.8,
+        strokeWeight: 2,
+      })
+    } else if (circleRef.current) {
+      circleRef.current.setCenter(selectedPosition)
+      circleRef.current.setRadius(radius)
+    }
+  }, [radius, selectedPosition])
 
   const handleSearch = (event: React.FormEvent) => {
     event.preventDefault()
@@ -86,6 +103,10 @@ const Home = () => {
   const handleSelectResult = (location: { lat: number; lng: number }) => {
     setSelectedPosition(location)
     mapRef.current?.panTo(location)
+  }
+
+  const handleRadiusChange = (newRadius: number) => {
+    setRadius(newRadius)
   }
 
   const onSubmit = (data: {
@@ -119,7 +140,7 @@ const Home = () => {
           center={selectedPosition}
           mapContainerStyle={containerStyle}
           options={{ mapId: import.meta.env.VITE_GOOGLE_MAPS_MAP_ID! }}
-          zoom={13}
+          zoom={15}
           onClick={onMapClick}
           onLoad={onLoad}
         />
@@ -131,7 +152,11 @@ const Home = () => {
         <p>Latitude: {selectedPosition.lat}</p>
         <p>Longitude: {selectedPosition.lng}</p>
       </div>
-      <LocationForm onSubmit={onSubmit} />
+      <LocationForm
+        onSubmit={onSubmit}
+        radius={radius}
+        onRadiusChange={handleRadiusChange}
+      />
       <SearchResults results={searchResults} onSelect={handleSelectResult} />
     </div>
   )
